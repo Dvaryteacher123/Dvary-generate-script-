@@ -1,0 +1,1099 @@
+<!DOCTYPE html>
+<html lang="sw">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>App Orders - Omba App Yako</title>
+    
+    <!-- Firebase SDKs (CDN) -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    
+    <style>
+        /* ============================================
+           ROOT VARIABLES - THEMES
+           ============================================ */
+        :root {
+            /* Light Theme (Default) */
+            --bg-body: #f0f2f5;
+            --bg-container: #ffffff;
+            --bg-section: #f8f9fa;
+            --bg-card: #ffffff;
+            --text-primary: #333333;
+            --text-secondary: #666666;
+            --text-light: #999999;
+            --border-color: #e0e0e0;
+            --shadow: 0 20px 60px rgba(0,0,0,0.1);
+            --gradient-start: #667eea;
+            --gradient-end: #764ba2;
+            --btn-primary: #667eea;
+            --btn-success: #28a745;
+            --btn-danger: #dc3545;
+            --btn-warning: #ffc107;
+            --card-pending: #fffbf0;
+            --card-completed: #f0fff4;
+            --card-rejected: #fff5f5;
+            --status-pending: #ffc107;
+            --status-completed: #28a745;
+            --status-rejected: #dc3545;
+            --transition: all 0.3s ease;
+        }
+        
+        /* Dark Theme */
+        [data-theme="dark"] {
+            --bg-body: #1a1a2e;
+            --bg-container: #16213e;
+            --bg-section: #1a1a2e;
+            --bg-card: #1e2a4a;
+            --text-primary: #e0e0e0;
+            --text-secondary: #b0b0b0;
+            --text-light: #888888;
+            --border-color: #2a3a5a;
+            --shadow: 0 20px 60px rgba(0,0,0,0.5);
+            --gradient-start: #0f3460;
+            --gradient-end: #16213e;
+            --btn-primary: #0f3460;
+            --card-pending: #1a2a3a;
+            --card-completed: #0a2a1a;
+            --card-rejected: #2a0a0a;
+        }
+        
+        /* Blue Theme */
+        [data-theme="blue"] {
+            --bg-body: #e3f2fd;
+            --bg-container: #ffffff;
+            --bg-section: #e8f4fd;
+            --bg-card: #ffffff;
+            --text-primary: #0d47a1;
+            --text-secondary: #1565c0;
+            --text-light: #64b5f6;
+            --border-color: #90caf9;
+            --gradient-start: #1a73e8;
+            --gradient-end: #0d47a1;
+            --btn-primary: #1a73e8;
+            --card-pending: #e3f2fd;
+            --card-completed: #e8f5e9;
+            --card-rejected: #ffebee;
+        }
+        
+        /* Green Theme */
+        [data-theme="green"] {
+            --bg-body: #e8f5e9;
+            --bg-container: #ffffff;
+            --bg-section: #f1f8f0;
+            --bg-card: #ffffff;
+            --text-primary: #1b5e20;
+            --text-secondary: #2e7d32;
+            --text-light: #66bb6a;
+            --border-color: #a5d6a7;
+            --gradient-start: #2e7d32;
+            --gradient-end: #1b5e20;
+            --btn-primary: #2e7d32;
+            --card-pending: #fff8e1;
+            --card-completed: #e8f5e9;
+            --card-rejected: #ffebee;
+        }
+        
+        /* Purple Theme */
+        [data-theme="purple"] {
+            --bg-body: #f3e5f5;
+            --bg-container: #ffffff;
+            --bg-section: #f8f0f9;
+            --bg-card: #ffffff;
+            --text-primary: #4a148c;
+            --text-secondary: #6a1b9a;
+            --text-light: #ab47bc;
+            --border-color: #ce93d8;
+            --gradient-start: #7b1fa2;
+            --gradient-end: #4a148c;
+            --btn-primary: #7b1fa2;
+            --card-pending: #f3e5f5;
+            --card-completed: #e8f5e9;
+            --card-rejected: #ffebee;
+        }
+        
+        /* ============================================
+           GLOBAL STYLES
+           ============================================ */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg-body);
+            min-height: 100vh;
+            padding: 20px;
+            transition: var(--transition);
+        }
+        
+        .container {
+            max-width: 950px;
+            margin: 0 auto;
+            background: var(--bg-container);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: var(--shadow);
+            transition: var(--transition);
+        }
+        
+        /* ============================================
+           HEADER
+           ============================================ */
+        .header {
+            text-align: center;
+            margin-bottom: 25px;
+            padding-bottom: 20px;
+            border-bottom: 3px solid var(--gradient-start);
+        }
+        
+        .header h1 {
+            color: var(--text-primary);
+            font-size: 2.5em;
+            transition: var(--transition);
+        }
+        
+        .header h1 span {
+            background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .header p {
+            color: var(--text-secondary);
+            font-size: 1.1em;
+            transition: var(--transition);
+        }
+        
+        /* ============================================
+           CONTROLS BAR (Language + Themes)
+           ============================================ */
+        .controls-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            background: var(--bg-section);
+            padding: 12px 20px;
+            border-radius: 10px;
+            margin-bottom: 25px;
+            transition: var(--transition);
+        }
+        
+        .controls-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .controls-group label {
+            font-weight: 600;
+            color: var(--text-secondary);
+            font-size: 0.9em;
+            transition: var(--transition);
+        }
+        
+        .controls-group select,
+        .controls-group button {
+            padding: 8px 15px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            background: var(--bg-container);
+            color: var(--text-primary);
+            cursor: pointer;
+            font-size: 14px;
+            transition: var(--transition);
+        }
+        
+        .controls-group select:hover,
+        .controls-group button:hover {
+            border-color: var(--btn-primary);
+            transform: translateY(-1px);
+        }
+        
+        .theme-btn {
+            padding: 8px 12px;
+            border-radius: 50%;
+            border: 2px solid var(--border-color);
+            cursor: pointer;
+            transition: var(--transition);
+            width: 36px;
+            height: 36px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+        
+        .theme-btn:hover {
+            transform: scale(1.1);
+            border-color: var(--btn-primary);
+        }
+        
+        .theme-btn.active {
+            border-color: var(--btn-primary);
+            box-shadow: 0 0 0 2px var(--btn-primary);
+        }
+        
+        /* ============================================
+           SUCCESS MESSAGE
+           ============================================ */
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid #c3e6cb;
+            display: none;
+            transition: var(--transition);
+        }
+        
+        /* ============================================
+           FORM SECTION
+           ============================================ */
+        .form-section {
+            background: var(--bg-section);
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            transition: var(--transition);
+        }
+        
+        .form-section h2 {
+            color: var(--text-primary);
+            margin-bottom: 20px;
+            transition: var(--transition);
+        }
+        
+        .form-group {
+            margin-bottom: 18px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: var(--text-primary);
+            transition: var(--transition);
+        }
+        
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 16px;
+            background: var(--bg-container);
+            color: var(--text-primary);
+            transition: var(--transition);
+        }
+        
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--btn-primary);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+        }
+        
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        
+        /* ============================================
+           BUTTONS
+           ============================================ */
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: var(--transition);
+            font-weight: 600;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+            color: white;
+            width: 100%;
+            padding: 15px;
+            font-size: 18px;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .btn-success {
+            background: var(--btn-success);
+            color: white;
+        }
+        
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(40, 167, 69, 0.4);
+        }
+        
+        .btn-danger {
+            background: var(--btn-danger);
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(220, 53, 69, 0.4);
+        }
+        
+        .btn-warning {
+            background: var(--btn-warning);
+            color: #333;
+        }
+        
+        .btn-warning:hover {
+            transform: translateY(-2px);
+        }
+        
+        /* ============================================
+           PENDING ORDERS
+           ============================================ */
+        .pending-orders {
+            margin-top: 30px;
+        }
+        
+        .pending-orders h2 {
+            color: var(--text-primary);
+            border-bottom: 3px solid var(--gradient-start);
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+            transition: var(--transition);
+        }
+        
+        .pending-orders .subtitle {
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+            transition: var(--transition);
+        }
+        
+        .order-card {
+            background: var(--bg-card);
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            transition: var(--transition);
+        }
+        
+        .order-card:hover {
+            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+            transform: translateY(-2px);
+        }
+        
+        .order-card.completed {
+            border-color: var(--status-completed);
+            background: var(--card-completed);
+        }
+        
+        .order-card.pending {
+            border-color: var(--status-pending);
+            background: var(--card-pending);
+        }
+        
+        .order-card.rejected {
+            border-color: var(--status-rejected);
+            background: var(--card-rejected);
+        }
+        
+        .order-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .order-title {
+            font-size: 1.2em;
+            font-weight: 700;
+            color: var(--text-primary);
+            transition: var(--transition);
+        }
+        
+        .order-status {
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .status-pending {
+            background: var(--status-pending);
+            color: #333;
+        }
+        
+        .status-completed {
+            background: var(--status-completed);
+            color: white;
+        }
+        
+        .status-rejected {
+            background: var(--status-rejected);
+            color: white;
+        }
+        
+        .order-details {
+            color: var(--text-secondary);
+            line-height: 1.7;
+            transition: var(--transition);
+        }
+        
+        .order-details p {
+            margin: 4px 0;
+        }
+        
+        .order-actions {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .script-link {
+            display: inline-block;
+            background: var(--btn-success);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 5px;
+            text-decoration: none;
+            margin-top: 8px;
+            transition: var(--transition);
+        }
+        
+        .script-link:hover {
+            opacity: 0.8;
+            transform: translateY(-1px);
+        }
+        
+        .no-orders {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-light);
+            font-size: 1.1em;
+            transition: var(--transition);
+        }
+        
+        /* ============================================
+           FOOTER
+           ============================================ */
+        .footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 2px solid var(--border-color);
+            text-align: center;
+            color: var(--text-secondary);
+            transition: var(--transition);
+        }
+        
+        .footer a {
+            color: var(--btn-primary);
+            text-decoration: none;
+            font-weight: 600;
+            transition: var(--transition);
+        }
+        
+        .footer a:hover {
+            text-decoration: underline;
+        }
+        
+        .footer .contact-info {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+        
+        /* ============================================
+           RESPONSIVE
+           ============================================ */
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+            
+            .header h1 {
+                font-size: 1.8em;
+            }
+            
+            .controls-bar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .controls-group {
+                justify-content: center;
+            }
+            
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .order-header {
+                flex-direction: column;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            body {
+                padding: 10px;
+            }
+            
+            .container {
+                padding: 10px;
+                border-radius: 12px;
+            }
+            
+            .header h1 {
+                font-size: 1.5em;
+            }
+            
+            .btn {
+                font-size: 14px;
+                padding: 10px 18px;
+            }
+            
+            .controls-group select,
+            .controls-group button {
+                font-size: 12px;
+                padding: 6px 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container" id="appContainer">
+        <!-- ==========================================
+        HEADER
+        ========================================== -->
+        <div class="header">
+            <h1>🚀 <span>App Orders</span></h1>
+            <p id="headerSubtitle">Omba app yako kwa urahisi</p>
+        </div>
+        
+        <!-- ==========================================
+        CONTROLS BAR
+        ========================================== -->
+        <div class="controls-bar">
+            <div class="controls-group">
+                <label for="languageSelect">🌍</label>
+                <select id="languageSelect">
+                    <option value="sw">🇹🇿 Kiswahili</option>
+                    <option value="en">🇬🇧 English</option>
+                </select>
+            </div>
+            
+            <div class="controls-group">
+                <label>🎨</label>
+                <button class="theme-btn active" data-theme="light" title="Light" style="background:#f0f2f5; color:#333;">☀️</button>
+                <button class="theme-btn" data-theme="dark" title="Dark" style="background:#1a1a2e; color:#e0e0e0;">🌙</button>
+                <button class="theme-btn" data-theme="blue" title="Blue" style="background:#e3f2fd; color:#0d47a1;">🔵</button>
+                <button class="theme-btn" data-theme="green" title="Green" style="background:#e8f5e9; color:#1b5e20;">🟢</button>
+                <button class="theme-btn" data-theme="purple" title="Purple" style="background:#f3e5f5; color:#4a148c;">🟣</button>
+            </div>
+        </div>
+        
+        <!-- ==========================================
+        SUCCESS MESSAGE
+        ========================================== -->
+        <div class="success-message" id="successMessage">
+            ✅ <span id="successText">Order imetumwa! Tutakujibu soon kupitia email yako.</span>
+        </div>
+        
+        <!-- ==========================================
+        ORDER FORM
+        ========================================== -->
+        <div class="form-section">
+            <h2 id="formTitle">📝 Omba App Yako</h2>
+            <form id="orderForm">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="customerName" id="labelName">Jina lako *</label>
+                        <input type="text" id="customerName" placeholder="Mfano: Juma Mwinyi" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="customerEmail" id="labelEmail">Barua pepe *</label>
+                        <input type="email" id="customerEmail" placeholder="Mfano: juma@gmail.com" required>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="appType" id="labelAppType">Aina ya app *</label>
+                    <input type="text" id="appType" placeholder="Mfano: Biashara, Elimu, Social Media..." required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="description" id="labelDescription">Maelezo ya kina *</label>
+                    <textarea id="description" placeholder="Eleza vizuri app unayotaka... Vipengele, design, n.k." required></textarea>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="features" id="labelFeatures">Vipengele</label>
+                        <input type="text" id="features" placeholder="Login, Cart, Payment, Dashboard">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="platform" id="labelPlatform">Platform</label>
+                        <select id="platform">
+                            <option value="Android">📱 Android</option>
+                            <option value="iOS">🍎 iOS</option>
+                            <option value="Web">🌐 Web</option>
+                            <option value="Desktop">💻 Desktop</option>
+                            <option value="Cross-platform">📱📱 Cross-platform (Android & iOS)</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <button type="submit" class="btn btn-primary" id="submitBtn">
+                    <span id="submitText">📤 Tuma Order</span>
+                </button>
+            </form>
+        </div>
+        
+        <!-- ==========================================
+        PENDING ORDERS
+        ========================================== -->
+        <div class="pending-orders">
+            <h2 id="pendingTitle">📋 Pending Orders</h2>
+            <p class="subtitle" id="pendingSubtitle">
+                Hapa unaweza kuona orders zote zilizowasilishwa.
+            </p>
+            <div id="ordersList"></div>
+        </div>
+        
+        <!-- ==========================================
+        FOOTER
+        ========================================== -->
+        <div class="footer">
+            <p>© 2026 App Orders | Powered by Firebase</p>
+            <div class="contact-info">
+                <a href="mailto:dullamanyama0@gmail.com">📧 dullamanyama0@gmail.com</a>
+                <a href="https://whatsapp.com/channel/0029VbCRC9b5fM5cruU8PF2M" target="_blank">
+                    📱 Jiunge na WhatsApp Channel
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // ============================================
+        // FIREBASE CONFIGURATION
+        // ============================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyAHNhUyFC7PlZGijkmYUnEc1GlEYJGHI40",
+            authDomain: "manyama2006-50664.firebaseapp.com",
+            projectId: "manyama2006-50664",
+            storageBucket: "manyama2006-50664.firebasestorage.app",
+            messagingSenderId: "749612577601",
+            appId: "1:749612577601:web:53295431132ddff30027c0",
+            measurementId: "G-9E858GX9HB"
+        };
+        
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        
+        // ============================================
+        // LANGUAGE TRANSLATIONS
+        // ============================================
+        const translations = {
+            sw: {
+                headerSubtitle: 'Omba app yako kwa urahisi',
+                formTitle: '📝 Omba App Yako',
+                labelName: 'Jina lako *',
+                labelEmail: 'Barua pepe *',
+                labelAppType: 'Aina ya app *',
+                labelDescription: 'Maelezo ya kina *',
+                labelFeatures: 'Vipengele (tenganisha na koma)',
+                labelPlatform: 'Platform unayotaka',
+                submitText: '📤 Tuma Order',
+                successText: 'Order imetumwa! Tutakujibu soon kupitia email yako.',
+                pendingTitle: '📋 Orders Zote',
+                pendingSubtitle: 'Hapa unaweza kuona orders zote zilizowasilishwa.',
+                noOrders: '🎉 Hakuna orders bado',
+                statusPending: 'Inasubiri',
+                statusCompleted: '✅ Imekamilika',
+                statusRejected: '❌ Imekataliwa',
+                scriptLink: '📥 Pakua Script',
+                completeBtn: '✅ Maliza & Weka Script',
+                rejectBtn: '❌ Kataa',
+                confirmReject: 'Je, una uhakika unataka kukataa order hii?',
+                scriptPrompt: 'Weka link ya script yako (GitHub, Dropbox, Google Drive, n.k.):',
+                alertComplete: '✅ Order imekamilika! Script imewekwa.',
+                alertReject: '❌ Order imekataliwa.',
+                alertError: '⚠️ Hitilafu: ',
+                alertRequired: '⚠️ Tafadhali jaza sehemu zote zilizo na * (nyota)',
+                alertEmail: '⚠️ Tafadhali weka barua pepe sahihi',
+                submitLoading: 'Inatumwa...',
+                footerText: '© 2026 App Orders | Powered by Firebase',
+                contactEmail: '📧 dullamanyama0@gmail.com',
+                contactWhatsApp: '📱 Jiunge na WhatsApp Channel'
+            },
+            en: {
+                headerSubtitle: 'Order your app easily',
+                formTitle: '📝 Order Your App',
+                labelName: 'Your Name *',
+                labelEmail: 'Email *',
+                labelAppType: 'App Type *',
+                labelDescription: 'Detailed Description *',
+                labelFeatures: 'Features (separate with commas)',
+                labelPlatform: 'Preferred Platform',
+                submitText: '📤 Submit Order',
+                successText: 'Order submitted! We will get back to you soon via email.',
+                pendingTitle: '📋 All Orders',
+                pendingSubtitle: 'Here you can see all submitted orders.',
+                noOrders: '🎉 No orders yet',
+                statusPending: 'Pending',
+                statusCompleted: '✅ Completed',
+                statusRejected: '❌ Rejected',
+                scriptLink: '📥 Download Script',
+                completeBtn: '✅ Complete & Add Script',
+                rejectBtn: '❌ Reject',
+                confirmReject: 'Are you sure you want to reject this order?',
+                scriptPrompt: 'Enter your script link (GitHub, Dropbox, Google Drive, etc.):',
+                alertComplete: '✅ Order completed! Script added.',
+                alertReject: '❌ Order rejected.',
+                alertError: '⚠️ Error: ',
+                alertRequired: '⚠️ Please fill all fields marked with * (asterisk)',
+                alertEmail: '⚠️ Please enter a valid email address',
+                submitLoading: 'Submitting...',
+                footerText: '© 2026 App Orders | Powered by Firebase',
+                contactEmail: '📧 dullamanyama0@gmail.com',
+                contactWhatsApp: '📱 Join WhatsApp Channel'
+            }
+        };
+        
+        let currentLang = 'sw';
+        
+        // ============================================
+        // DOM ELEMENTS
+        // ============================================
+        const elements = {
+            headerSubtitle: document.getElementById('headerSubtitle'),
+            formTitle: document.getElementById('formTitle'),
+            labelName: document.getElementById('labelName'),
+            labelEmail: document.getElementById('labelEmail'),
+            labelAppType: document.getElementById('labelAppType'),
+            labelDescription: document.getElementById('labelDescription'),
+            labelFeatures: document.getElementById('labelFeatures'),
+            labelPlatform: document.getElementById('labelPlatform'),
+            submitText: document.getElementById('submitText'),
+            successText: document.getElementById('successText'),
+            pendingTitle: document.getElementById('pendingTitle'),
+            pendingSubtitle: document.getElementById('pendingSubtitle'),
+            submitBtn: document.getElementById('submitBtn'),
+            orderForm: document.getElementById('orderForm'),
+            ordersList: document.getElementById('ordersList'),
+            successMessage: document.getElementById('successMessage'),
+            languageSelect: document.getElementById('languageSelect')
+        };
+        
+        // ============================================
+        // LANGUAGE FUNCTION
+        // ============================================
+        function setLanguage(lang) {
+            currentLang = lang;
+            const t = translations[lang];
+            
+            elements.headerSubtitle.textContent = t.headerSubtitle;
+            elements.formTitle.textContent = t.formTitle;
+            elements.labelName.textContent = t.labelName;
+            elements.labelEmail.textContent = t.labelEmail;
+            elements.labelAppType.textContent = t.labelAppType;
+            elements.labelDescription.textContent = t.labelDescription;
+            elements.labelFeatures.textContent = t.labelFeatures;
+            elements.labelPlatform.textContent = t.labelPlatform;
+            elements.submitText.textContent = t.submitText;
+            elements.successText.textContent = t.successText;
+            elements.pendingTitle.textContent = t.pendingTitle;
+            elements.pendingSubtitle.textContent = t.pendingSubtitle;
+            
+            // Update placeholders
+            document.getElementById('customerName').placeholder = lang === 'sw' ? 'Mfano: Juma Mwinyi' : 'Example: John Doe';
+            document.getElementById('customerEmail').placeholder = lang === 'sw' ? 'Mfano: juma@gmail.com' : 'Example: john@gmail.com';
+            document.getElementById('appType').placeholder = lang === 'sw' ? 'Mfano: Biashara, Elimu, Social Media...' : 'Example: Business, Education, Social Media...';
+            document.getElementById('description').placeholder = lang === 'sw' ? 'Eleza vizuri app unayotaka... Vipengele, design, n.k.' : 'Describe your app in detail... Features, design, etc.';
+            document.getElementById('features').placeholder = lang === 'sw' ? 'Login, Cart, Payment, Dashboard' : 'Login, Cart, Payment, Dashboard';
+            
+            // Update platform options
+            const platform = document.getElementById('platform');
+            const options = platform.options;
+            if (lang === 'sw') {
+                options[0].text = '📱 Android';
+                options[1].text = '🍎 iOS';
+                options[2].text = '🌐 Web';
+                options[3].text = '💻 Desktop';
+                options[4].text = '📱📱 Cross-platform (Android & iOS)';
+            } else {
+                options[0].text = '📱 Android';
+                options[1].text = '🍎 iOS';
+                options[2].text = '🌐 Web';
+                options[3].text = '💻 Desktop';
+                options[4].text = '📱📱 Cross-platform (Android & iOS)';
+            }
+            
+            // Reload orders with new language
+            loadOrders();
+        }
+        
+        // ============================================
+        // THEME FUNCTION
+        // ============================================
+        function setTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+            
+            // Update active button
+            document.querySelectorAll('.theme-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.theme === theme);
+            });
+            
+            // Save to localStorage
+            localStorage.setItem('app-theme', theme);
+        }
+        
+        // ============================================
+        // LOAD ORDERS (Real-time)
+        // ============================================
+        function loadOrders() {
+            db.collection('orders')
+                .orderBy('dateSubmitted', 'desc')
+                .onSnapshot((snapshot) => {
+                    let html = '';
+                    const t = translations[currentLang];
+                    
+                    if (snapshot.empty) {
+                        html = `<div class="no-orders">${t.noOrders}</div>`;
+                    } else {
+                        snapshot.forEach((doc) => {
+                            const order = doc.data();
+                            const orderId = doc.id;
+                            
+                            let statusClass = 'pending';
+                            let statusText = t.statusPending;
+                            
+                            if (order.status === 'completed') {
+                                statusClass = 'completed';
+                                statusText = t.statusCompleted;
+                            } else if (order.status === 'rejected') {
+                                statusClass = 'rejected';
+                                statusText = t.statusRejected;
+                            }
+                            
+                            const dateStr = order.dateSubmitted 
+                                ? new Date(order.dateSubmitted.seconds * 1000).toLocaleDateString(
+                                    currentLang === 'sw' ? 'sw-TZ' : 'en-US',
+                                    { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }
+                                  )
+                                : '...';
+                            
+                            html += `
+                                <div class="order-card ${statusClass}">
+                                    <div class="order-header">
+                                        <div>
+                                            <span class="order-title">${order.appType || 'App'}</span>
+                                            <span class="order-status status-${order.status || 'pending'}">${statusText}</span>
+                                        </div>
+                                        <div style="font-size: 0.85em; color: var(--text-light);">
+                                            ${dateStr}
+                                        </div>
+                                    </div>
+                                    <div class="order-details">
+                                        <p><strong>👤 ${currentLang === 'sw' ? 'Jina' : 'Name'}:</strong> ${order.customerName || '...'}</p>
+                                        <p><strong>📧 ${currentLang === 'sw' ? 'Barua pepe' : 'Email'}:</strong> ${order.customerEmail || '...'}</p>
+                                        <p><strong>📝 ${currentLang === 'sw' ? 'Maelezo' : 'Description'}:</strong> ${order.description || '...'}</p>
+                                        ${order.features ? `<p><strong>⚙️ ${currentLang === 'sw' ? 'Vipengele' : 'Features'}:</strong> ${Array.isArray(order.features) ? order.features.join(', ') : order.features}</p>` : ''}
+                                        <p><strong>💻 ${currentLang === 'sw' ? 'Platform' : 'Platform'}:</strong> ${order.platform || '...'}</p>
+                                        ${order.scriptUrl ? `<p><strong>🔗 ${currentLang === 'sw' ? 'Script' : 'Script'}:</strong> <a href="${order.scriptUrl}" target="_blank" class="script-link">${t.scriptLink}</a></p>` : ''}
+                                    </div>
+                                    ${order.status === 'pending' ? `
+                                        <div class="order-actions">
+                                            <button class="btn btn-success" onclick="completeOrder('${orderId}')">
+                                                ${t.completeBtn}
+                                            </button>
+                                            <button class="btn btn-danger" onclick="rejectOrder('${orderId}')">
+                                                ${t.rejectBtn}
+                                            </button>
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            `;
+                        });
+                    }
+                    
+                    elements.ordersList.innerHTML = html;
+                }, (error) => {
+                    console.error('Error loading orders:', error);
+                    elements.ordersList.innerHTML = `<p style="color: var(--btn-danger);">⚠️ ${translations[currentLang].alertError} ${error.message}</p>`;
+                });
+        }
+        
+        // ============================================
+        // ORDER ACTIONS
+        // ============================================
+        function completeOrder(orderId) {
+            const t = translations[currentLang];
+            const scriptUrl = prompt(t.scriptPrompt);
+            
+            if (scriptUrl) {
+                db.collection('orders').doc(orderId).update({
+                    status: 'completed',
+                    scriptUrl: scriptUrl,
+                    dateCompleted: firebase.firestore.FieldValue.serverTimestamp()
+                })
+                .then(() => {
+                    alert(t.alertComplete);
+                })
+                .catch((error) => {
+                    alert(t.alertError + error.message);
+                });
+            }
+        }
+        
+        function rejectOrder(orderId) {
+            const t = translations[currentLang];
+            if (confirm(t.confirmReject)) {
+                db.collection('orders').doc(orderId).update({
+                    status: 'rejected'
+                })
+                .then(() => {
+                    alert(t.alertReject);
+                })
+                .catch((error) => {
+                    alert(t.alertError + error.message);
+                });
+            }
+        }
+        
+        // ============================================
+        // SUBMIT ORDER
+        // ============================================
+        elements.orderForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const t = translations[currentLang];
+            
+            const customerName = document.getElementById('customerName').value.trim();
+            const customerEmail = document.getElementById('customerEmail').value.trim();
+            const appType = document.getElementById('appType').value.trim();
+            const description = document.getElementById('description').value.trim();
+            const featuresInput = document.getElementById('features').value.trim();
+            const platform = document.getElementById('platform').value;
+            
+            // Validation
+            if (!customerName || !customerEmail || !appType || !description) {
+                alert(t.alertRequired);
+                return;
+            }
+            
+            if (!customerEmail.includes('@') || !customerEmail.includes('.')) {
+                alert(t.alertEmail);
+                return;
+            }
+            
+            let features = [];
+            if (featuresInput) {
+                features = featuresInput.split(',').map(f => f.trim()).filter(f => f);
+            }
+            
+            elements.submitBtn.disabled = true;
+            elements.submitText.textContent = t.submitLoading;
+            
+            try {
+                await db.collection('orders').add({
+                    customerName: customerName,
+                    customerEmail: customerEmail,
+                    appType: appType,
+                    description: description,
+                    features: features,
+                    platform: platform,
+                    status: 'pending',
+                    scriptUrl: '',
+                    dateSubmitted: firebase.firestore.FieldValue.serverTimestamp(),
+                    dateCompleted: null
+                });
+                
+                elements.successMessage.style.display = 'block';
+                setTimeout(() => {
+                    elements.successMessage.style.display = 'none';
+                }, 5000);
+                
+                elements.orderForm.reset();
+                
+            } catch (error) {
+                console.error('Error submitting order:', error);
+                alert(t.alertError + error.message);
+            } finally {
+                elements.submitBtn.disabled = false;
+                elements.submitText.textContent = t.submitText;
+            }
+        });
+        
+        // ============================================
+        // EVENT LISTENERS
+        // ============================================
+        // Language
+        elements.languageSelect.addEventListener('change', (e) => {
+            setLanguage(e.target.value);
+            localStorage.setItem('app-language', e.target.value);
+        });
+        
+        // Theme buttons
+        document.querySelectorAll('.theme-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                setTheme(btn.dataset.theme);
+            });
+        });
+        
+        // ============================================
+        // INITIALIZATION
+        // ============================================
+        // Load saved preferences
+        const savedTheme = localStorage.getItem('app-theme') || 'light';
+        const savedLang = localStorage.getItem('app-language') || 'sw';
+        
+        setTheme(savedTheme);
+        elements.languageSelect.value = savedLang;
+        setLanguage(savedLang);
+        
+        // Load orders
+        loadOrders();
+        
+        console.log('🚀 App Orders - App imeanzishwa!');
+        console.log('📧 Contact: dullamanyama0@gmail.com');
+        console.log('📱 WhatsApp Channel: https://whatsapp.com/channel/0029VbCRC9b5fM5cruU8PF2M');
+    </script>
+</body>
+  </html>
