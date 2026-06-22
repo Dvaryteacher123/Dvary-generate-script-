@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="sw">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>App Orders - Omba App Yako</title>
+    
+    <!-- Firebase SDKs (CDN) -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 3px solid #667eea;
+        }
+        
+        .header h1 {
+            color: #333;
+            font-size: 2.5em;
+            margin-bottom: 5px;
+        }
+        
+        .header p {
+            color: #666;
+            font-size: 1.1em;
+        }
+        
+        .auth-section {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #667eea;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+        
+        .btn {
+            padding: 10px 25px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+        
+        .btn-google {
+            background: #4285F4;
+            color: white;
+        }
+        
+        .btn-google:hover {
+            background: #357ae8;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(66, 133, 244, 0.4);
+        }
+        
+        .btn-logout {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .btn-logout:hover {
+            background: #c82333;
+            transform: translateY(-2px);
+        }
+        
+        .btn-submit {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            width: 100%;
+            padding: 15px;
+            font-size: 18px;
+        }
+        
+        .btn-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-submit:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: #218838;
+            transform: translateY(-2px);
+        }
+        
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: #c82333;
+            transform: translateY(-2px);
+        }
+        
+        .btn-warning {
+            background: #ffc107;
+            color: #333;
+        }
+        
+        .btn-warning:hover {
+            background: #e0a800;
+            transform: translateY(-2px);
+        }
+        
+        .form-section {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border 0.3s;
+        }
+        
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+        
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid #c3e6cb;
+            display: none;
+        }
+        
+        .pending-orders {
+            margin-top: 30px;
+        }
+        
+        .pending-orders h2 {
+            color: #333;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .order-card {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            transition: all 0.3s;
+        }
+        
+        .order-card:hover {
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+        }
+        
+        .order-card.completed {
+            border-color: #28a745;
+            background: #f0fff4;
+        }
+        
+        .order-card.pending {
+            border-color: #ffc107;
+            background: #fffbf0;
+        }
+        
+        .order-card.rejected {
+            border-color: #dc3545;
+            background: #fff5f5;
+        }
+        
+        .order-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .order-title {
+            font-size: 1.2em;
+            font-weight: 700;
+            color: #333;
+        }
+        
+        .order-status {
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .status-pending {
+            background: #ffc107;
+            color: #333;
+        }
+        
+        .status-completed {
+            background: #28a745;
+            color: white;
+        }
+        
+        .status-rejected {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .order-details {
+            color: #555;
+            line-height: 1.6;
+        }
+        
+        .order-details p {
+            margin: 5px 0;
+        }
+        
+        .order-actions {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .script-link {
+            display: inline-block;
+            background: #28a745;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 5px;
+            text-decoration: none;
+            margin-top: 10px;
+        }
+        
+        .script-link:hover {
+            background: #218838;
+        }
+        
+        .footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 2px solid #e0e0e0;
+            text-align: center;
+            color: #666;
+        }
+        
+        .footer a {
+            color: #667eea;
+            text-decoration: none;
+        }
+        
+        .footer a:hover {
+            text-decoration: underline;
+        }
+        
+        .contact-info {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+        
+        .contact-info a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        
+        .contact-info a:hover {
+            text-decoration: underline;
+        }
+        
+        .no-orders {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+            font-size: 1.1em;
+        }
+        
+        .admin-badge {
+            background: #28a745;
+            color: white;
+            padding: 2px 12px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            margin-left: 10px;
+        }
+        
+        @media (max-width: 600px) {
+            .container {
+                padding: 15px;
+            }
+            
+            .header h1 {
+                font-size: 1.8em;
+            }
+            
+            .auth-section {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .user-info {
+                justify-content: center;
+            }
+            
+            .order-header {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>🚀 App Orders</h1>
+            <p>Omba app yako kwa urahisi</p>
+        </div>
+        
+        <!-- Auth Section -->
+        <div class="auth-section" id="authSection">
+            <div class="user-info" id="userInfo" style="display: none;">
+                <div class="user-avatar" id="userAvatar">U</div>
+                <span id="userName">Mteja</span>
+                <span id="adminBadge" style="display: none;" class="admin-badge">Admin</span>
+            </div>
+            <div>
+                <button class="btn btn-google" id="signInBtn">🔑 Sign in with Google</button>
+                <button class="btn btn-logout" id="signOutBtn" style="display: none;">Logout</button>
+            </div>
+        </div>
+        
+        <!-- Success Message -->
+        <div class="success-message" id="successMessage">
+            ✅ Order imetumwa! Tutakujibu soon kupitia email yako.
+        </div>
+        
+        <!-- Order Form -->
+        <div class="form-section">
+            <h2 style="margin-bottom: 20px; color: #333;">📝 Omba App Yako</h2>
+            <form id="orderForm">
+                <div class="form-group">
+                    <label for="customerName">Jina lako *</label>
+                    <input type="text" id="customerName" placeholder="Mfano: Juma Mwinyi" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="customerEmail">Barua pepe *</label>
+                    <input type="email" id="customerEmail" placeholder="Mfano: juma@gmail.com" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="appType">Aina ya app *</label>
+                    <input type="text" id="appType" placeholder="Mfano: Biashara, Elimu, Social Media..." required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="description">Maelezo ya kina *</label>
+                    <textarea id="description" placeholder="Eleza vizuri app unayotaka... Vipengele, design, n.k." required></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="features">Vipengele (tenganisha na koma)</label>
+                    <input type="text" id="features" placeholder="Mfano: Login, Cart, Payment, Dashboard">
+                </div>
+                
+                <div class="form-group">
+                    <label for="platform">Platform unayotaka</label>
+                    <select id="platform">
+                        <option value="Android">Android</option>
+                        <option value="iOS">iOS</option>
+                        <option value="Web">Web</option>
+                        <option value="Desktop">Desktop</option>
+                        <option value="Cross-platform">Cross-platform (Android & iOS)</option>
+                    </select>
+                </div>
+                
+                <button type="submit" class="btn btn-submit" id="submitBtn">Tuma Order</button>
+            </form>
+        </div>
+        
+        <!-- Pending Orders (Admin Only) -->
+        <div class="pending-orders" id="pendingOrders" style="display: none;">
+            <h2>📋 Pending Orders</h2>
+            <p style="color: #666; margin-bottom: 20px;">
+                Hapa ndo unaweka script baada ya kumaliza app. 
+                Bonyeza <strong>"Maliza & Weka Script"</strong> kuweka link ya script yako.
+            </p>
+            <div id="ordersList"></div>
+        </div>
+        
+        <!-- Footer -->
+        <div class="footer">
+            <p>© 2026 App Orders | Powered by Firebase</p>
+            <div class="contact-info">
+                <a href="mailto:dullamanyama0@gmail.com">📧 dullamanyama0@gmail.com</a>
+                <a href="https://whatsapp.com/channel/0029VbCRC9b5fM5cruU8PF2M" target="_blank">
+                    📱 Jiunge na WhatsApp Channel
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // ============================================
+        // FIREBASE CONFIGURATION
+        // ============================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyAHNhUyFC7PlZGijkmYUnEc1GlEYJGHI40",
+            authDomain: "manyama2006-50664.firebaseapp.com",
+            projectId: "manyama2006-50664",
+            storageBucket: "manyama2006-50664.firebasestorage.app",
+            messagingSenderId: "749612577601",
+            appId: "1:749612577601:web:53295431132ddff30027c0",
+            measurementId: "G-9E858GX9HB"
+        };
+        
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        const provider = new firebase.auth.GoogleAuthProvider();
+        
+        // ============================================
+        // GLOBAL VARIABLES
+        // ============================================
+        let currentUser = null;
+        let isAdmin = false;
+        const ADMIN_EMAIL = "dullamanyama0@gmail.com"; // Your admin email
+        
+        // ============================================
+        // DOM ELEMENTS
+        // ============================================
+        const signInBtn = document.getElementById('signInBtn');
+        const signOutBtn = document.getElementById('signOutBtn');
+        const userInfo = document.getElementById('userInfo');
+        const userName = document.getElementById('userName');
+        const userAvatar = document.getElementById('userAvatar');
+        const adminBadge = document.getElementById('adminBadge');
+        const pendingOrders = document.getElementById('pendingOrders');
+        const ordersList = document.getElementById('ordersList');
+        const orderForm = document.getElementById('orderForm');
+        const submitBtn = document.getElementById('submitBtn');
+        const successMessage = document.getElementById('successMessage');
+        
+        // ============================================
+        // AUTH FUNCTIONS
+        // ============================================
+        function signInWithGoogle() {
+            signInBtn.disabled = true;
+            signInBtn.textContent = 'Inaingiza...';
+            
+            auth.signInWithPopup(provider)
+                .then((result) => {
+                    console.log('Signed in:', result.user);
+                    updateUI(result.user);
+                })
+                .catch((error) => {
+                    console.error('Login error:', error);
+                    alert('Hitilafu wakati wa kuingia: ' + error.message);
+                })
+                .finally(() => {
+                    signInBtn.disabled = false;
+                    signInBtn.textContent = '🔑 Sign in with Google';
+                });
+        }
+        
+        function signOutUser() {
+            auth.signOut()
+                .then(() => {
+                    console.log('Signed out');
+                    updateUI(null);
+                })
+                .catch((error) => {
+                    console.error('Logout error:', error);
+                });
+        }
+        
+        // ============================================
+        // UI UPDATE
+        // ============================================
+        function updateUI(user) {
+            currentUser = user;
+            
+            if (user) {
+                // Show user info
+                userInfo.style.display = 'flex';
+                signInBtn.style.display = 'none';
+                signOutBtn.style.display = 'inline-block';
+                
+                const displayName = user.displayName || user.email || 'Mteja';
+                userName.textContent = displayName;
+                userAvatar.textContent = displayName.charAt(0).toUpperCase();
+                
+                // Check if admin
+                isAdmin = user.email === ADMIN_EMAIL;
+                if (isAdmin) {
+                    adminBadge.style.display = 'inline';
+                    pendingOrders.style.display = 'block';
+                    loadOrders();
+                } else {
+                    adminBadge.style.display = 'none';
+                    pendingOrders.style.display = 'none';
+                }
+            } else {
+                // Hide user info
+                userInfo.style.display = 'none';
+                signInBtn.style.display = 'inline-block';
+                signOutBtn.style.display = 'none';
+                isAdmin = false;
+                pendingOrders.style.display = 'none';
+                ordersList.innerHTML = '';
+            }
+        }
+        
+        // ============================================
+        // LOAD ORDERS (Real-time)
+        // ============================================
+        function loadOrders() {
+            db.collection('orders')
+                .orderBy('dateSubmitted', 'desc')
+                .onSnapshot((snapshot) => {
+                    let html = '';
+                    
+                    if (snapshot.empty) {
+                        html = '<div class="no-orders">🎉 Hakuna orders bado</div>';
+                    } else {
+                        snapshot.forEach((doc) => {
+                            const order = doc.data();
+                            const orderId = doc.id;
+                            
+                            let statusClass = 'pending';
+                            let statusText = 'Pending';
+                            
+                            if (order.status === 'completed') {
+                                statusClass = 'completed';
+                                statusText = '✅ Completed';
+                            } else if (order.status === 'rejected') {
+                                statusClass = 'rejected';
+                                statusText = '❌ Rejected';
+                            }
+                            
+                            html += `
+                                <div class="order-card ${statusClass}">
+                                    <div class="order-header">
+                                        <div>
+                                            <span class="order-title">${order.appType || 'App'}</span>
+                                            <span class="order-status status-${order.status || 'pending'}">${statusText}</span>
+                                        </div>
+                                        <div style="font-size: 0.9em; color: #666;">
+                                            ${order.dateSubmitted ? new Date(order.dateSubmitted.seconds * 1000).toLocaleDateString('sw') : '...'}
+                                        </div>
+                                    </div>
+                                    <div class="order-details">
+                                        <p><strong>👤 Jina:</strong> ${order.customerName || '...'}</p>
+                                        <p><strong>📧 Email:</strong> ${order.customerEmail || '...'}</p>
+                                        <p><strong>📝 Maelezo:</strong> ${order.description || '...'}</p>
+                                        ${order.features ? `<p><strong>⚙️ Vipengele:</strong> ${Array.isArray(order.features) ? order.features.join(', ') : order.features}</p>` : ''}
+                                        <p><strong>💻 Platform:</strong> ${order.platform || '...'}</p>
+                                        ${order.scriptUrl ? `<p><strong>🔗 Script:</strong> <a href="${order.scriptUrl}" target="_blank" class="script-link">Download Script</a></p>` : ''}
+                                    </div>
+                                    ${order.status === 'pending' ? `
+                                        <div class="order-actions">
+                                            <button class="btn btn-success" onclick="completeOrder('${orderId}')">
+                                                ✅ Maliza & Weka Script
+                                            </button>
+                                            <button class="btn btn-danger" onclick="rejectOrder('${orderId}')">
+                                                ❌ Kataa
+                                            </button>
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            `;
+                        });
+                    }
+                    
+                    ordersList.innerHTML = html;
+                }, (error) => {
+                    console.error('Error loading orders:', error);
+                    ordersList.innerHTML = '<p style="color: red;">Hitilafu: ' + error.message + '</p>';
+                });
+        }
+        
+        // ============================================
+        // ORDER ACTIONS (Admin)
+        // ============================================
+        function completeOrder(orderId) {
+            const scriptUrl = prompt('Weka link ya script yako (GitHub, Dropbox, Google Drive, n.k.):');
+            
+            if (scriptUrl) {
+                db.collection('orders').doc(orderId).update({
+                    status: 'completed',
+                    scriptUrl: scriptUrl,
+                    dateCompleted: firebase.firestore.FieldValue.serverTimestamp()
+                })
+                .then(() => {
+                    alert('✅ Order imekamilika! Script imewekwa.');
+                })
+                .catch((error) => {
+                    alert('Hitilafu: ' + error.message);
+                });
+            }
+        }
+        
+        function rejectOrder(orderId) {
+            if (confirm('Je, una uhakika unataka kukataa order hii?')) {
+                db.collection('orders').doc(orderId).update({
+                    status: 'rejected'
+                })
+                .then(() => {
+                    alert('❌ Order imekataliwa.');
+                })
+                .catch((error) => {
+                    alert('Hitilafu: ' + error.message);
+                });
+            }
+        }
+        
+        // ============================================
+        // SUBMIT ORDER
+        // ============================================
+        orderForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const customerName = document.getElementById('customerName').value.trim();
+            const customerEmail = document.getElementById('customerEmail').value.trim();
+            const appType = document.getElementById('appType').value.trim();
+            const description = document.getElementById('description').value.trim();
+            const featuresInput = document.getElementById('features').value.trim();
+            const platform = document.getElementById('platform').value;
+            
+            // Validation
+            if (!customerName || !customerEmail || !appType || !description) {
+                alert('Tafadhali jaza sehemu zote zilizo na * (nyota)');
+                return;
+            }
+            
+            // Validate email
+            if (!customerEmail.includes('@') || !customerEmail.includes('.')) {
+                alert('Tafadhali weka barua pepe sahihi');
+                return;
+            }
+            
+            // Process features
+            let features = [];
+            if (featuresInput) {
+                features = featuresInput.split(',').map(f => f.trim()).filter(f => f);
+            }
+            
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Inatumwa...';
+            
+            try {
+                await db.collection('orders').add({
+                    customerName: customerName,
+                    customerEmail: customerEmail,
+                    appType: appType,
+                    description: description,
+                    features: features,
+                    platform: platform,
+                    status: 'pending',
+                    scriptUrl: '',
+                    dateSubmitted: firebase.firestore.FieldValue.serverTimestamp(),
+                    dateCompleted: null
+                });
+                
+                // Show success
+                successMessage.style.display = 'block';
+                setTimeout(() => {
+                    successMessage.style.display = 'none';
+                }, 5000);
+                
+                // Reset form
+                orderForm.reset();
+                
+            } catch (error) {
+                console.error('Error submitting order:', error);
+                alert('Hitilafu: ' + error.message);
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Tuma Order';
+            }
+        });
+        
+        // ============================================
+        // AUTH EVENT LISTENERS
+        // ============================================
+        signInBtn.addEventListener('click', signInWithGoogle);
+        signOutBtn.addEventListener('click', signOutUser);
+        
+        // Auth state observer
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                updateUI(user);
+            } else {
+                updateUI(null);
+            }
+        });
+        
+        // ============================================
+        // INITIALIZATION
+        // ============================================
+        console.log('App Orders - App imeanzishwa!');
+        console.log('Admin Email:', ADMIN_EMAIL);
+        console.log('WhatsApp Channel: https://whatsapp.com/channel/0029VbCRC9b5fM5cruU8PF2M');
+    </script>
+</body>
+  </html>
